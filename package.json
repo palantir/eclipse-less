@@ -1,0 +1,8 @@
+{
+
+  "name": "eclipse-less",
+  "version": "1.0.0",
+  "devDependencies": {
+    "less": "1.4.2"
+  }
+}
