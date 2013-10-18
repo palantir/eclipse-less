@@ -154,6 +154,6 @@ public final class Builder extends IncrementalProjectBuilder {
     }
 
     private static boolean isLessFile(IResource resource) {
-        return resource.getType() == IResource.FILE && resource.getName().endsWith("app.less");
+        return resource.getType() == IResource.FILE && resource.getName().equals("app.less");
     }
 }
