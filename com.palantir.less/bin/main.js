@@ -1,14 +1,17 @@
 var fs = require("fs");
-var handlebars = require("./handlebars.js");
+var less = require("less");
 
-// read the template file
-var templateFile = process.argv[process.argv.length - 2];
-var template = fs.readFileSync(templateFile, "utf-8");
+// read the less file
+var lessFile = process.argv[process.argv.length - 2];
+var lessContents = fs.readFileSync(lessFile, "utf-8");
 
-// precompile the template for AMD
-var precompiledTemplate = handlebars.precompile(template);
-precompiledTemplate = "define(['handlebars'], function(Handlebars) {\nreturn Handlebars.template(" + precompiledTemplate + ")\n});";
+// compile
+var parser = new less.Parser({
+	filename: lessFile
+});
 
-// output the precompiled JavaScript
-var javaScriptFile = process.argv[process.argv.length - 1];
-fs.writeFileSync(javaScriptFile, precompiledTemplate, "utf-8");
+parser.parse(lessContents, function (e, tree) {
+	var cssContents = tree.toCSS();
+	var cssFile = process.argv[process.argv.length - 1];
+	fs.writeFileSync(cssFile, cssContents, "utf-8");
+});

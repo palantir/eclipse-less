@@ -21,15 +21,18 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IResourceDeltaVisitor;
 import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.Path;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -102,9 +105,10 @@ public final class Builder extends IncrementalProjectBuilder {
         }
     }
 
-    private static void compile(String fileName) {
+    private static void compile(String fileName) throws CoreException {
         File nodeFile = findNode();
         String nodePath = nodeFile.getAbsolutePath();
+        String outputFileName = fileName.replace(".less", ".css");
 
         // get the path to the main.js file
         File bundleFile;
@@ -121,7 +125,7 @@ public final class Builder extends IncrementalProjectBuilder {
         command.add(nodePath);
         command.add(mainPath);
         command.add(fileName);
-        command.add(fileName.replace(".less", ".css"));
+        command.add(outputFileName);
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         Process process;
@@ -133,6 +137,13 @@ public final class Builder extends IncrementalProjectBuilder {
 
         try {
             process.waitFor();
+            Path path = new Path(outputFileName);
+            IFile file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(path);
+
+            // refresh the resource for the file if it is within the workspace
+            if (file != null) {
+                file.refreshLocal(IResource.DEPTH_ZERO, null);
+            }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
