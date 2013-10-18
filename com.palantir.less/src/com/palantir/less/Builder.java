@@ -24,8 +24,6 @@ import java.util.Map;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IResourceDelta;
-import org.eclipse.core.resources.IResourceDeltaVisitor;
 import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -54,8 +52,6 @@ public final class Builder extends IncrementalProjectBuilder {
         switch (kind) {
             case IncrementalProjectBuilder.AUTO_BUILD:
             case IncrementalProjectBuilder.INCREMENTAL_BUILD:
-                this.incrementalBuild();
-                break;
             case IncrementalProjectBuilder.FULL_BUILD:
                 this.fullBuild();
                 break;
@@ -72,28 +68,6 @@ public final class Builder extends IncrementalProjectBuilder {
                 @Override
                 public boolean visit(IResource resource) throws CoreException {
                     if (isLessFile(resource)) {
-                        compile(resource.getRawLocation().toOSString());
-                    }
-
-                    return true;
-                }
-            });
-        } catch (CoreException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void incrementalBuild() {
-        IProject project = this.getProject();
-        IResourceDelta delta = this.getDelta(project);
-
-        try {
-            delta.accept(new IResourceDeltaVisitor() {
-                @Override
-                public boolean visit(IResourceDelta resourceDelta) throws CoreException {
-                    IResource resource = resourceDelta.getResource();
-
-                    if (isLessFile(resource) && isAddedOrChanged(resourceDelta)) {
                         compile(resource.getRawLocation().toOSString());
                     }
 
@@ -179,17 +153,7 @@ public final class Builder extends IncrementalProjectBuilder {
         return "node";
     }
 
-    private static boolean isAddedOrChanged(IResourceDelta resourceDelta) {
-        switch (resourceDelta.getKind()) {
-            case IResourceDelta.ADDED:
-            case IResourceDelta.CHANGED:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     private static boolean isLessFile(IResource resource) {
-        return resource.getType() == IResource.FILE && resource.getName().endsWith(".less");
+        return resource.getType() == IResource.FILE && resource.getName().endsWith("app.less");
     }
 }
