@@ -18,7 +18,7 @@
 <plugin>
    <extension
          id="lessBuilder"
-         name="Less Builder"
+         name="LESS Builder"
          point="org.eclipse.core.resources.builders">
       <builder
             hasNature="true">
@@ -29,7 +29,7 @@
    </extension>
    <extension
          id="lessNature"
-         name="Less Project Nature"
+         name="LESS Project Nature"
          point="org.eclipse.core.resources.natures">
       <runtime>
          <run
