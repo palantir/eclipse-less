@@ -3,7 +3,7 @@ Bundle-Localization: plugin
 Bundle-ManifestVersion: 2
 Bundle-Name: Less
 Bundle-SymbolicName: com.palantir.less;singleton:=true
-Bundle-Version: 1.0.0.qualifier
+Bundle-Version: 1.4.2.qualifier
 Bundle-Activator: com.palantir.less.UIPlugin
 Bundle-Vendor: Palantir Technologies
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
