@@ -25,5 +25,5 @@ An Eclipse builder plug-in for precompiling LESS files.
 ```
 grunt
 mvn clean install
-The update site will be in com.palantir.less.p2updatesite/target/repository.
 ```
+The update site will be in `com.palantir.less.p2updatesite/target/repository`.
