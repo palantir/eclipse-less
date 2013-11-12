@@ -27,7 +27,3 @@ grunt
 mvn clean install
 The update site will be in com.palantir.less.p2updatesite/target/repository.
 ```
-
-## Additional Information
-* Eclipse Kepler (4.3) is currently the only supported version
-* Eclipse must be running via Java 6+
