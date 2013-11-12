@@ -1,5 +1,5 @@
 var fs = require("fs");
-var less = require("../../node_modules/less");
+var less = require("less");
 
 // read the less file
 var lessFile = process.argv[process.argv.length - 2];
