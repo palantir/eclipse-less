@@ -11,7 +11,7 @@ An Eclipse builder plug-in for precompiling LESS files.
 
 ### Enabling the Builder
 
-1. From the `Navigator` view, right-click on a project containing TypeScript files.
+1. Right-click on a project containing LESS files.
 2. Select `Configure`-`Enable LESS Builder`.
 
 ## Development
