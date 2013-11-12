@@ -18,7 +18,7 @@
 <plugin>
    <extension
          id="lessBuilder"
-         name="Less Builder"
+         name="LESS Builder"
          point="org.eclipse.core.resources.builders">
       <builder
             hasNature="true">
@@ -29,7 +29,7 @@
    </extension>
    <extension
          id="lessNature"
-         name="Less Project Nature"
+         name="LESS Project Nature"
          point="org.eclipse.core.resources.natures">
       <runtime>
          <run
@@ -59,7 +59,7 @@
             locationURI="popup:org.eclipse.ui.projectConfigure?after=additions">
          <command
                commandId="com.palantir.less.toggleNature"
-               label="Disable Less Builder"
+               label="Disable LESS Builder"
                style="push">
             <visibleWhen
                   checkEnabled="false">
@@ -87,7 +87,7 @@
          </command>
          <command
                commandId="com.palantir.less.toggleNature"
-               label="Enable Less Builder"
+               label="Enable LESS Builder"
                style="push">
             <visibleWhen
                   checkEnabled="false">

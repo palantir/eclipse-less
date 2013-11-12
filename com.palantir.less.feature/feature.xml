@@ -17,7 +17,7 @@
 <feature
       id="com.palantir.less.feature"
       label="Less"
-      version="1.0.0.qualifier"
+      version="1.4.2.qualifier"
       provider-name="Palantir Technologies, Inc.">
 
    <description url="https://github.com/palantir/eclipse-less">
@@ -237,6 +237,6 @@
          id="com.palantir.less"
          download-size="0"
          install-size="0"
-         version="1.0.0.qualifier"/>
+         version="1.4.2.qualifier"/>
 
 </feature>
