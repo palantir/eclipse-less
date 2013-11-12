@@ -16,7 +16,7 @@
 -->
 <feature
       id="com.palantir.less.feature"
-      label="Less"
+      label="LESS Builder"
       version="1.4.2.qualifier"
       provider-name="Palantir Technologies, Inc.">
 
