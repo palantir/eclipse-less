@@ -24,6 +24,8 @@ import java.util.Map;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.resources.IResourceDeltaVisitor;
 import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -33,6 +35,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.Path;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 /**
@@ -48,35 +51,73 @@ public final class Builder extends IncrementalProjectBuilder {
     private static final Splitter PATH_SPLITTER = Splitter.on(File.pathSeparatorChar);
 
     @Override
-    protected IProject[] build(int kind, Map args, IProgressMonitor monitor) throws CoreException {
+    protected IProject[] build(int kind, Map<String, String> args, IProgressMonitor monitor) throws CoreException {
+        boolean lessNeedsRebuild;
+
         switch (kind) {
             case IncrementalProjectBuilder.AUTO_BUILD:
             case IncrementalProjectBuilder.INCREMENTAL_BUILD:
-            case IncrementalProjectBuilder.FULL_BUILD:
-                this.fullBuild();
+                ImmutableList<String> filesToRebuild = this.changedLessFiles();
+                lessNeedsRebuild = (!filesToRebuild.isEmpty());
                 break;
+
+            case IncrementalProjectBuilder.FULL_BUILD:
+                lessNeedsRebuild = true;
+                break;
+
+            default:
+                throw new IllegalArgumentException();
+        }
+
+        if (lessNeedsRebuild) {
+            this.fullBuild();
         }
 
         return null;
     }
 
     private void fullBuild() {
-        IProject project = this.getProject();
-
         try {
-            project.accept(new IResourceVisitor() {
-                @Override
-                public boolean visit(IResource resource) throws CoreException {
-                    if (isLessFile(resource)) {
-                        compile(resource.getRawLocation().toOSString());
-                    }
-
-                    return true;
-                }
-            });
+            String lessFile = Builder.getRootLessFile(this.getProject());
+            compile(lessFile);
         } catch (CoreException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static String getRootLessFile(IProject project) throws CoreException {
+        // stop-gap until configurable src/dst is added
+
+        final ImmutableList.Builder<String> files = ImmutableList.builder();
+        project.accept(new IResourceVisitor() {
+            @Override
+            public boolean visit(IResource resource) throws CoreException {
+                if (isLessFile(resource) && resource.getName().equals("app.less")) {
+                    files.add(resource.getRawLocation().toOSString());
+                }
+                return true;
+            }
+        });
+        return files.build().get(0);
+    }
+
+    private ImmutableList<String> changedLessFiles() throws CoreException {
+        final ImmutableList.Builder<String> files = ImmutableList.builder();
+        IResourceDelta delta = this.getDelta(this.getProject());
+
+        delta.accept(new IResourceDeltaVisitor(){
+            @Override
+            public boolean visit(IResourceDelta delta) throws CoreException {
+                if (isLessFile(delta.getResource())) {
+                    IFile file = (IFile) delta.getResource();
+                    String path = file.getProjectRelativePath().toOSString();
+                    files.add(path);
+                }
+                return true;
+            }
+        });
+
+        return files.build();
     }
 
     private static void compile(String fileName) throws CoreException {
@@ -154,7 +195,10 @@ public final class Builder extends IncrementalProjectBuilder {
     }
 
     private static boolean isLessFile(IResource resource) {
-        String resourceName = resource.getName();
-        return (resource.getType() == IResource.FILE && (resourceName.equals("app.less") || resourceName.equals("login.less")));
+        if (resource == null || resource.getType() != IResource.FILE) {
+            return false;
+        }
+        String ext = resource.getFileExtension();
+        return (ext != null && ext.equals("less"));
     }
 }
