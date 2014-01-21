@@ -45,11 +45,11 @@ import com.google.common.collect.Lists;
  */
 public final class Builder extends IncrementalProjectBuilder {
 
+    public static final String ID = "com.palantir.less.lessBuilder";
+
     private static final String PREFERENCES_OUTPUT_FILE_NAME = "dest";
 
     private static final String PREFERENCES_SOURCE_FILE_NAME = "src";
-
-    public static final String ID = "com.palantir.less.lessBuilder";
 
     private static final String OS_NAME = System.getProperty("os.name");
     private static final Splitter PATH_SPLITTER = Splitter.on(File.pathSeparatorChar);
