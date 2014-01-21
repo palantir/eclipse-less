@@ -14,6 +14,17 @@ An Eclipse builder plug-in for precompiling LESS files.
 1. Right-click on a project containing LESS files.
 2. Select `Configure`-`Enable LESS Builder`.
 
+#### Configuring the Builder
+
+1. Create `your-project/.settings/com.palantir.less.lessBuilder.prefs`
+2. Add Eclipse style key/value pairs for src and dest, for the root less file and the output css file respectively.
+
+A `.settings/com.palantir.less.lessBuilder.prefs` might look like
+```
+src=src/resources/app.less
+dest=src/resources/app.css
+```
+
 ## Development
 
 1. `git clone git@github.com:palantir/eclipse-less.git`

@@ -26,13 +26,13 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IResourceDeltaVisitor;
-import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
-import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.resources.ProjectScope;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.core.runtime.preferences.IScopeContext;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -44,6 +44,10 @@ import com.google.common.collect.Lists;
  * @author aramaswamy
  */
 public final class Builder extends IncrementalProjectBuilder {
+
+    private static final String PREFERENCES_OUTPUT_FILE_NAME = "dest";
+
+    private static final String PREFERENCES_SOURCE_FILE_NAME = "src";
 
     public static final String ID = "com.palantir.less.lessBuilder";
 
@@ -77,28 +81,28 @@ public final class Builder extends IncrementalProjectBuilder {
     }
 
     private void fullBuild() {
+        IProject project = this.getProject();
+
+        IScopeContext projectScope = new ProjectScope(project);
+        IEclipsePreferences prefs = projectScope.getNode(Builder.ID);
+
+        String relativeSourcePath = prefs.get(PREFERENCES_SOURCE_FILE_NAME, null);
+        String relativeDestinationPath = prefs.get(PREFERENCES_OUTPUT_FILE_NAME, null);
+
+        if (relativeSourcePath == null) {
+            throw new RuntimeException("the LESS builder does not have a source file; please set one");
+        } else if (relativeDestinationPath == null) {
+            throw new RuntimeException("the LESS builder does not have an output file; please set one");
+        }
+
+        IFile source = project.getFile(relativeSourcePath);
+        IFile destination = project.getFile(relativeDestinationPath);
+
         try {
-            String lessFile = Builder.getRootLessFile(this.getProject());
-            compile(lessFile);
+            compile(source, destination);
         } catch (CoreException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private static String getRootLessFile(IProject project) throws CoreException {
-        // stop-gap until configurable src/dst is added
-
-        final ImmutableList.Builder<String> files = ImmutableList.builder();
-        project.accept(new IResourceVisitor() {
-            @Override
-            public boolean visit(IResource resource) throws CoreException {
-                if (isLessFile(resource) && resource.getName().equals("app.less")) {
-                    files.add(resource.getRawLocation().toOSString());
-                }
-                return true;
-            }
-        });
-        return files.build().get(0);
     }
 
     private ImmutableList<String> changedLessFiles() throws CoreException {
@@ -120,10 +124,8 @@ public final class Builder extends IncrementalProjectBuilder {
         return files.build();
     }
 
-    private static void compile(String fileName) throws CoreException {
+    private static void compile(IFile input, IFile output) throws CoreException {
         File nodeFile = findNode();
-        String nodePath = nodeFile.getAbsolutePath();
-        String outputFileName = fileName.replace(".less", ".css");
 
         // get the path to the main.js file
         File bundleFile;
@@ -133,14 +135,14 @@ public final class Builder extends IncrementalProjectBuilder {
             throw new RuntimeException(e);
         }
         File mainFile = new File(bundleFile, "bin/main.js");
-        String mainPath = mainFile.getAbsolutePath();
 
         // create the command
-        List<String> command = Lists.newArrayList();
-        command.add(nodePath);
-        command.add(mainPath);
-        command.add(fileName);
-        command.add(outputFileName);
+        ImmutableList<String> command = new ImmutableList.Builder<String>()
+            .add(nodeFile.getAbsolutePath())
+            .add(mainFile.getAbsolutePath())
+            .add(input.getLocation().toOSString())
+            .add(output.getLocation().toOSString())
+            .build();
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         Process process;
@@ -152,12 +154,9 @@ public final class Builder extends IncrementalProjectBuilder {
 
         try {
             process.waitFor();
-            Path path = new Path(outputFileName);
-            IFile file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(path);
-
             // refresh the resource for the file if it is within the workspace
-            if (file != null) {
-                file.refreshLocal(IResource.DEPTH_ZERO, null);
+            if (output.exists()) {
+                output.refreshLocal(IResource.DEPTH_ZERO, null);
             }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
