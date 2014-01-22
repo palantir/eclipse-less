@@ -1,3 +1,4 @@
+.DS_Store
 ecbuild/
 node_modules/
 target/
