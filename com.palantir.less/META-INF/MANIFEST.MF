@@ -9,7 +9,7 @@ Bundle-Vendor: Palantir Technologies
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ActivationPolicy: lazy
 Bundle-ClassPath: .,
- lib/guava-14.0.1.jar
+ lib/guava-16.0.jar
 Import-Package: org.eclipse.core.resources
 Eclipse-BundleShape: dir
 Require-Bundle: org.eclipse.core.runtime,
