@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -35,6 +36,7 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IScopeContext;
 
 import com.google.common.base.Splitter;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -47,84 +49,67 @@ public final class Builder extends IncrementalProjectBuilder {
 
     public static final String ID = "com.palantir.less.lessBuilder";
 
-    private static final String PREFERENCES_OUTPUT_FILE_NAME = "dest";
-
-    private static final String PREFERENCES_SOURCE_FILE_NAME = "src";
-
-    private static final String OS_NAME = System.getProperty("os.name");
+    private static final String OS_NAME = StandardSystemProperty.OS_NAME.value();
     private static final Splitter PATH_SPLITTER = Splitter.on(File.pathSeparatorChar);
 
     @Override
     protected IProject[] build(int kind, Map<String, String> args, IProgressMonitor monitor) throws CoreException {
-        boolean lessNeedsRebuild;
+        boolean build = true;
 
         switch (kind) {
             case IncrementalProjectBuilder.AUTO_BUILD:
             case IncrementalProjectBuilder.INCREMENTAL_BUILD:
-                ImmutableList<String> filesToRebuild = this.changedLessFiles();
-                lessNeedsRebuild = (!filesToRebuild.isEmpty());
+                build = this.hasLessFileChanged();
                 break;
-
-            case IncrementalProjectBuilder.FULL_BUILD:
-                lessNeedsRebuild = true;
-                break;
-
-            default:
-                throw new IllegalArgumentException();
         }
 
-        if (lessNeedsRebuild) {
-            this.fullBuild();
+        if (build) {
+            this.compileLessFiles(monitor);
         }
 
         return null;
     }
 
-    private void fullBuild() {
+    private void compileLessFiles(IProgressMonitor monitor) {
         IProject project = this.getProject();
-
         IScopeContext projectScope = new ProjectScope(project);
-        IEclipsePreferences prefs = projectScope.getNode(Builder.ID);
+        IEclipsePreferences prefs = projectScope.getNode(UIPlugin.ID);
+        String srcFiles = prefs.get("srcFiles", null);
 
-        String relativeSourcePath = prefs.get(PREFERENCES_SOURCE_FILE_NAME, null);
-        String relativeDestinationPath = prefs.get(PREFERENCES_OUTPUT_FILE_NAME, null);
+        if (srcFiles != null) {
+            for (String srcFile : Splitter.on(';').split(srcFiles)) {
+                IFile lessFile = project.getFile(srcFile);
+                IFile cssFile = project.getFile(srcFile.replace(".less", ".css"));
 
-        if (relativeSourcePath == null) {
-            throw new RuntimeException("the LESS builder does not have a source file; please set one");
-        } else if (relativeDestinationPath == null) {
-            throw new RuntimeException("the LESS builder does not have an output file; please set one");
-        }
-
-        IFile source = project.getFile(relativeSourcePath);
-        IFile destination = project.getFile(relativeDestinationPath);
-
-        try {
-            compile(source, destination);
-        } catch (CoreException e) {
-            throw new RuntimeException(e);
+                compileLessFile(lessFile, cssFile, monitor);
+            }
         }
     }
 
-    private ImmutableList<String> changedLessFiles() throws CoreException {
-        final ImmutableList.Builder<String> files = ImmutableList.builder();
+    private boolean hasLessFileChanged() throws CoreException {
+        final AtomicBoolean lessFileChanged = new AtomicBoolean();
         IResourceDelta delta = this.getDelta(this.getProject());
 
-        delta.accept(new IResourceDeltaVisitor(){
+        delta.accept(new IResourceDeltaVisitor() {
             @Override
             public boolean visit(IResourceDelta delta) throws CoreException {
-                if (isLessFile(delta.getResource())) {
-                    IFile file = (IFile) delta.getResource();
-                    String path = file.getProjectRelativePath().toOSString();
-                    files.add(path);
+                IResource resource = delta.getResource();
+
+                if (isLessFile(resource)) {
+                    lessFileChanged.set(true);
+
+                    // no need to continue visiting resources in this delta
+                    return false;
                 }
+
                 return true;
             }
         });
 
-        return files.build();
+        return lessFileChanged.get();
     }
 
-    private static void compile(IFile input, IFile output) throws CoreException {
+    private static void compileLessFile(IFile lessFile, IFile cssFile, IProgressMonitor monitor) {
         File nodeFile = findNode();
 
         // get the path to the main.js file
@@ -138,12 +123,13 @@ public final class Builder extends IncrementalProjectBuilder {
 
         // create the command
         ImmutableList<String> command = new ImmutableList.Builder<String>()
-            .add(nodeFile.getAbsolutePath())
-            .add(mainFile.getAbsolutePath())
-            .add(input.getLocation().toOSString())
-            .add(output.getLocation().toOSString())
-            .build();
+                .add(nodeFile.getAbsolutePath())
+                .add(mainFile.getAbsolutePath())
+                .add(lessFile.getLocation().toOSString())
+                .add(cssFile.getLocation().toOSString())
+                .build();
 
+        // compile the less file
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         Process process;
         try {
@@ -152,13 +138,17 @@ public final class Builder extends IncrementalProjectBuilder {
             throw new RuntimeException(e);
         }
 
+        // wait for the compilation to complete
         try {
             process.waitFor();
-            // refresh the resource for the file if it is within the workspace
-            if (output.exists()) {
-                output.refreshLocal(IResource.DEPTH_ZERO, null);
-            }
         } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        // refresh the CSS file to ensure it is up-to-date within Eclipse
+        try {
+            cssFile.refreshLocal(IResource.DEPTH_ZERO, monitor);
+        } catch (CoreException e) {
             throw new RuntimeException(e);
         }
     }
@@ -194,10 +184,6 @@ public final class Builder extends IncrementalProjectBuilder {
     }
 
     private static boolean isLessFile(IResource resource) {
-        if (resource == null || resource.getType() != IResource.FILE) {
-            return false;
-        }
-        String ext = resource.getFileExtension();
-        return (ext != null && ext.equals("less"));
+        return resource.getType() == IResource.FILE && resource.getName().endsWith(".less");
     }
 }
