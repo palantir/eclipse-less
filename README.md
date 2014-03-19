@@ -17,12 +17,11 @@ An Eclipse builder plug-in for precompiling LESS files.
 #### Configuring the Builder
 
 1. Create `your-project/.settings/com.palantir.less.lessBuilder.prefs`
-2. Add Eclipse style key/value pairs for src and dest, for the root less file and the output css file respectively.
+2. Add Eclipse style key/value pairs for the root less files 
 
-A `.settings/com.palantir.less.lessBuilder.prefs` might look like
+A `.settings/com.palantir.less.prefs` might look like
 ```
-src=src/resources/app.less
-dest=src/resources/app.css
+srcFiles=src/app.less;src/login.less
 ```
 
 ## Development
