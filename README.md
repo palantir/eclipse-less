@@ -16,7 +16,7 @@ An Eclipse builder plug-in for precompiling LESS files.
 
 #### Configuring the Builder
 
-1. Create `your-project/.settings/com.palantir.less.lessBuilder.prefs`
+1. Create `your-project/.settings/com.palantir.less.prefs`
 2. Add Eclipse style key/value pairs for the root less files 
 
 A `.settings/com.palantir.less.prefs` might look like
