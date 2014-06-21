@@ -18,7 +18,6 @@ package com.palantir.less;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -76,17 +75,19 @@ public final class Builder extends IncrementalProjectBuilder {
         IScopeContext projectScope = new ProjectScope(project);
         IEclipsePreferences prefs = projectScope.getNode(UIPlugin.ID);
         String srcFiles = prefs.get("srcFiles", null);
-        String destPath = prefs.get("destPath", null);
+        String outDir = prefs.get("outDir", null);
 
         if (srcFiles != null) {
             for (String srcFile : Splitter.on(';').split(srcFiles)) {
                 IFile lessFile = project.getFile(srcFile);
                 String cssFileName = srcFile.replace(".less", ".css");
-                if (destPath != null) {
-                   ArrayList<String> splitList = (ArrayList<String>) Splitter.on(File.pathSeparator).splitToList(cssFileName);
-                   cssFileName = destPath + File.pathSeparator + splitList.get(splitList.size() -1);
+
+                if (outDir != null) {
+                    List<String> splitList = Splitter.on('/').splitToList(cssFileName);
+
+                    cssFileName = outDir + '/' + splitList.get(splitList.size() - 1);
                 }
-                
+
                 IFile cssFile = project.getFile(cssFileName);
 
                 compileLessFile(lessFile, cssFile, monitor);
