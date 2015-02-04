@@ -3,6 +3,6 @@
   "name": "eclipse-less",
   "version": "1.4.2",
   "devDependencies": {
-    "less": "1.4.2"
+    "less": "2.3.1"
   }
 }
